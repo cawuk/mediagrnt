@@ -1,63 +1,70 @@
-import os
+import logging
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+BOT_TOKEN = "YOUR_BOT_TOKEN_HERE"
 ADMIN_ID = 5536891599
 
-FIRST_MESSAGE = """I'm a Telegram bot for verification by Grnt Media! ✅
-My job is to confirm that you're a real Telegram user.
-I will connect with you in the future.
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
+)
 
-Website: grnt.media
-Telegram: @gruntmedia
-YouTube: youtube.com/@grntmedia
-Twitter: twitter.com/grntmedia 🌱
-
-If you have any questions, feel free to contact the tech admin: @megrunt"""
-
-user_context = {}
+user_messages = {}
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.effective_user
-    user_context[user.id] = user.username or user.full_name
-    await update.message.reply_text(FIRST_MESSAGE)
-    await context.bot.send_message(
-        chat_id=ADMIN_ID,
-        text=f"New user started the bot:\n{user.full_name} (@{user.username})\nID: {user.id}"
+    await update.message.reply_text(
+        "I'm a Telegram bot for verification by Grnt Media! ✅\n"
+        "My job is to confirm that you're a real Telegram user.\n"
+        "I will connect with you in the future.\n\n"
+        "Website: grnt.media\n"
+        "Telegram: @gruntmedia\n"
+        "YouTube: youtube.com/@grntmedia\n"
+        "Twitter: twitter.com/grntmedia 🌱\n\n"
+        "If you have any questions, feel free to contact the tech admin: @megrunt"
     )
+    if update.message.from_user.id != ADMIN_ID:
+        await context.bot.send_message(
+            chat_id=ADMIN_ID,
+            text=f"New user started bot:\nID: {update.message.from_user.id}\nUsername: @{update.message.from_user.username}"
+        )
 
 async def info(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("This bot is for verification by Grnt Media.")
+    await update.message.reply_text("This bot allows you to communicate with the admin.")
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.effective_user
-    text = update.message.text
-    user_context[user.id] = user.username or user.full_name
-    await context.bot.send_message(
-        chat_id=ADMIN_ID,
-        text=f"Message from {user.full_name} (@{user.username})\nID: {user.id}\n\n{text}"
-    )
-    await update.message.reply_text("Your message has been received by admin.")
+    user_id = update.message.from_user.id
+    message = update.message.text
+    user_messages[user_id] = message
+    if user_id != ADMIN_ID:
+        await context.bot.send_message(
+            chat_id=ADMIN_ID,
+            text=f"Message from {user_id} (@{update.message.from_user.username}):\n{message}"
+        )
+    else:
+        # Admin messages must be in format: /reply <user_id> <message>
+        pass
 
-async def admin_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id != ADMIN_ID:
+async def reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message.from_user.id != ADMIN_ID:
         return
     if len(context.args) < 2:
         await update.message.reply_text("Usage: /reply <user_id> <message>")
         return
     try:
-        target_id = int(context.args[0])
-        reply_text = " ".join(context.args[1:])
-        await context.bot.send_message(chat_id=target_id, text=reply_text)
-        await update.message.reply_text("Message sent successfully.")
+        user_id = int(context.args[0])
+        reply_message = " ".join(context.args[1:])
+        await context.bot.send_message(chat_id=user_id, text=reply_message)
+        await update.message.reply_text("Message sent.")
     except Exception as e:
         await update.message.reply_text(f"Error: {e}")
 
-app = ApplicationBuilder().token(BOT_TOKEN).build()
-app.add_handler(CommandHandler("start", start))
-app.add_handler(CommandHandler("info", info))
-app.add_handler(CommandHandler("reply", admin_reply))
-app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+def main():
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("info", info))
+    app.add_handler(CommandHandler("reply", reply))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    app.run_polling()
 
-app.run_polling()
+if __name__ == "__main__":
+    main()
