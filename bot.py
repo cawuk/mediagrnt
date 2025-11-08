@@ -1,76 +1,43 @@
+import os
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
-TOKEN = "YOUR_BOT_TOKEN_HERE"
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 ADMIN_ID = 5536891599
 
-users_seen = set()
+FIRST_MESSAGE = """I'm a Telegram bot for verification by Grnt Media! ✅
+My job is to confirm that you're a real Telegram user.
+I will connect with you in the future.
 
-async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    username = update.effective_user.username or "No username"
+Website: grnt.media
+Telegram: @gruntmedia
+YouTube: youtube.com/@grntmedia
+Twitter: twitter.com/grntmedia 🌱
 
-    if user_id not in users_seen:
-        users_seen.add(user_id)
-        await update.message.reply_text(
-            "I'm a Telegram bot for verification by Grnt Media! ✅\n"
-            "My job is to confirm that you're a real Telegram user.\n"
-            "I will connect with you in the future.\n\n"
-            "Website: grnt.media\n"
-            "Telegram: @gruntmedia\n"
-            "YouTube: youtube.com/@grntmedia\n"
-            "Twitter: twitter.com/grntmedia 🌱\n\n"
-            "If you have any questions, feel free to contact the tech admin: @megrunt"
-        )
+If you have any questions, feel free to contact the tech admin: @megrunt"""
 
-    await context.bot.send_message(
-        chat_id=ADMIN_ID,
-        text=f"User started bot:\nID: {user_id}\nUsername: @{username}"
-    )
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.message.from_user
+    user_id = user.id
+    # Відправляємо користувачу перше повідомлення
+    await update.message.reply_text(FIRST_MESSAGE)
+    # Сповіщаємо адміна про нового користувача
+    await context.bot.send_message(chat_id=ADMIN_ID, text=f"New user started bot: {user.full_name} ({user_id})")
 
-async def handle_user_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    username = update.effective_user.username or "No username"
-    text = update.message.text
+async def info(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("This bot is for user verification by Grnt Media!")
 
-    if user_id not in users_seen:
-        users_seen.add(user_id)
-        await update.message.reply_text(
-            "I'm a Telegram bot for verification by Grnt Media! ✅"
-        )
+async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_text = update.message.text
+    user_id = update.message.from_user.id
+    # Відправляємо адміну текст від користувача
+    await context.bot.send_message(chat_id=ADMIN_ID, text=f"User {user_id} wrote: {user_text}")
+    # Відповідаємо користувачу
+    await update.message.reply_text(f"You wrote: {user_text}")
 
-    await context.bot.send_message(
-        chat_id=ADMIN_ID,
-        text=f"Message from user:\nID: {user_id}\nUsername: @{username}\nMessage: {text}"
-    )
+app = Application.builder().token(BOT_TOKEN).build()
+app.add_handler(CommandHandler("start", start))
+app.add_handler(CommandHandler("info", info))
+app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
 
-async def handle_admin_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id != ADMIN_ID:
-        return
-
-    if not update.message.reply_to_message:
-        return  # адміністратор не відповідає на повідомлення користувача
-
-    original_text = update.message.reply_to_message.text
-
-    # шукаємо ID користувача в оригінальному повідомленні
-    import re
-    match = re.search(r"ID: (\d+)", original_text)
-    if not match:
-        await update.message.reply_text("Cannot find user ID in original message.")
-        return
-
-    target_id = int(match.group(1))
-    reply_text = update.message.text
-
-    await context.bot.send_message(chat_id=target_id, text=reply_text)
-    await update.message.reply_text(f"Message sent to {target_id}")
-
-if __name__ == "__main__":
-    app = ApplicationBuilder().token(TOKEN).build()
-
-    app.add_handler(CommandHandler("start", start_command))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_user_message))
-    app.add_handler(MessageHandler(filters.TEXT & filters.Chat(ADMIN_ID) & filters.REPLY, handle_admin_reply))
-
-    app.run_polling()
+app.run_polling()
