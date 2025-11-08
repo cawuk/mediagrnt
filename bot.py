@@ -1,8 +1,9 @@
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters
+from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
 
 TOKEN = "YOUR_BOT_TOKEN_HERE"
-ADMIN_ID = 123456789  # замініть на ваш Telegram ID
+ADMIN_ID = 5536891599  # замініть на ваш Telegram ID
+
 FIRST_MESSAGE_TEXT = (
     "I'm a Telegram bot for verification by Grnt Media! ✅\n"
     "My job is to confirm that you're a real Telegram user.\n"
@@ -18,13 +19,17 @@ users_seen = set()
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
+    username = update.effective_user.username or "No username"
+
     if user_id not in users_seen:
         users_seen.add(user_id)
         await update.message.reply_text(FIRST_MESSAGE_TEXT)
-        await context.bot.send_message(
-            chat_id=ADMIN_ID,
-            text=f"New user started the bot:\nID: {user_id}\nUsername: @{update.effective_user.username}"
-        )
+
+    # Відправляємо адміну інформацію про всі повідомлення
+    await context.bot.send_message(
+        chat_id=ADMIN_ID,
+        text=f"Message from user:\nID: {user_id}\nUsername: @{username}\nMessage: {update.message.text}"
+    )
 
 if __name__ == "__main__":
     app = ApplicationBuilder().token(TOKEN).build()
