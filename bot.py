@@ -15,13 +15,11 @@ ADMIN_ID = int(os.environ["ADMIN_ID"])
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "I'm a Telegram bot for verification by Grnt Media! ✅\n"
-        "My job is to confirm that you're a real Telegram user.\n"
-        "I will connect with you in the future.\n\n"
         "🌐 Website: grnt.media\n"
         "💬 Telegram: @gruntmedia\n"
         "▶️ YouTube: youtube.com/@grntmedia\n"
         "🐦 Twitter: twitter.com/grntmedia\n\n"
-        "If you have any questions, feel free to contact the tech admin: @megrunt"
+        "If you have any questions, feel free to contact us by typing a message below, and we will reply shortly."
     )
 
 # Повідомлення користувача ➜ адміну
@@ -49,7 +47,7 @@ async def handle_user_message(update: Update, context: ContextTypes.DEFAULT_TYPE
     # Відповідаємо користувачу
     await update.message.reply_text(
         "✅ Hi! Your message has been received, we will reply soon.\n"
-        "If you want to contact the admin immediately, write to @megrunt."
+        "Have a nice day."
     )
 
 # Відповідь адміна ➜ користувачу
